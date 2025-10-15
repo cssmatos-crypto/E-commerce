@@ -1,76 +1,102 @@
-https://www.kaggle.com/datasets/mkechinov/ecommerce-behavior-data-from-multi-category-store
+# 🛍️ Previsão de Compras e Análise de Clusters em Dados de E-commerce
+
+**Dataset:** [E-commerce Behavior Data from Multi-Category Store – Kaggle](https://www.kaggle.com/datasets/mkechinov/ecommerce-behavior-data-from-multi-category-store)  
+**Ficheiro usado:** `2019-Nov.csv`
+
+---
+
+---
+
+## 🧭 Ordem de Execução
+
+O projeto está organizado em módulos independentes dentro da pasta `src/`, permitindo execução faseada do pipeline.
+
+### 🔹 1. Pré-processamento e Geração de Parquets
+> **Script:** `src/full_pipeline.py`
+
+- Lê o ficheiro original `raw/2019-Nov.csv` em chunks (50.000 linhas).  
+- Limpa e transforma os dados.  
+- Cria features comportamentais e salva os resultados em `data/clean/part_*.parquet`.
+
+```bash
+python src/full_pipeline.py
 
 
-CSV bruto (chunks) 
-       │
-       ▼
-Leitura por chunks → Limpeza & Feature Engineering
-       │
-       ▼
-Guardar Parquet limpo
-       │
-       ├─> Treino incremental SGDClassifier
-       └─> Treino incremental MiniBatchKMeans
-       │
-       ▼
-Checkpoint (modelos + estado)
-       │
-       ▼
-Avaliação final + Atribuição de clusters
-       │
-       ▼
-Resultados & Parquets com clusters
 
-************************************************************************************************
+## 🎯 Objetivo
 
-Pipeline de Análise de Compras e Clusters (Novembro 2019)
+Prever a probabilidade de compra de utilizadores com base no seu comportamento de navegação e segmentá-los em **clusters** para análise de padrões e apoio à tomada de decisão estratégica.
 
-Objetivo: Prever compras de usuários e segmentá-los em clusters.
+---
 
-Dados: CSV de eventos de novembro 2019, processado em chunks e transformado em Parquets limpos.
+## ⚙️ Pipeline do Projeto
 
-Features criadas:
+| Componente | Função |
+|-------------|--------|
+| **SGDClassifier (incremental)** | Previsão da variável `is_purchase` com treino em mini-batches (streaming) |
+| **MiniBatchKMeans (k=5)** | Segmentação de utilizadores em 5 clusters comportamentais |
+| **IncrementalPCA (3 componentes)** | Redução de dimensionalidade para visualização 3D dos clusters |
+| **SMOTE** | Oversampling da classe minoritária para mitigar desbalanceamento e melhorar o F1-score |
 
-Atividade: user_event_count, events_per_user, events_per_hour
+---
 
-Temporal: hour_bucket, hour_span
+## 📊 Resultados Principais
 
-Compromisso: cart_view_ratio, purchase_ratio
+| Métrica | Valor |
+|---------|-------|
+| ✅ **Accuracy** | 91,1% |
+| 🎯 **Precision (classe 1 – compra)** | 12,2% |
+| 📈 **Recall (classe 1 – compra)** | 85,7% |
+| ⚖️ **F1-score (classe 1)** | 21,3% |
+| 🧮 **ROC-AUC** | 0.90 |
 
-Diversidade: avg_price_per_user, unique_brands, unique_categories
+### 🧠 Interpretação
+- O modelo identifica **muito bem quem não compra** (alta precisão na classe 0).  
+- Capta a **maioria dos compradores reais** (recall elevado), embora com alguns falsos positivos.  
+- O **F1-score** reflete o equilíbrio entre capturar compradores e evitar previsões erradas.  
+- O **AUC = 0.90** indica excelente separação entre compradores e não compradores.
 
-Cluster do usuário (cluster)
+---
 
-Modelos:
+## 🔑 Features Mais Relevantes
 
-SGDClassifier incremental (com SMOTE para balancear classe de compra)
+| Feature | Descrição |
+|----------|------------|
+| **`cluster`** | Representa o perfil comportamental do utilizador — a variável mais influente. |
+| **`cart_view_ratio`** | Percentagem de eventos de visualização de carrinho → indica **intenção direta de compra**. |
+| **`avg_price_per_user`** | Valor médio dos produtos visualizados → proxy de **poder de compra**. |
+| **`events_per_user`** | Mede **nível de engagement** e interação geral. |
 
-MiniBatchKMeans (5 clusters)
+💡 **Insight:**  
+O **Cluster 3 – “Compradores Fiéis”** destacou-se como o segmento **mais valioso**, com a maior taxa média de conversão.  
+Usuários neste grupo exibem **alto engagement, alto `cart_view_ratio`** e **valores médios de produtos superiores**.
 
-IncrementalPCA (3 componentes, visualização 3D)
+---
 
-Resultados (último Parquet de teste):
+## 📉 Visualizações Recomendadas
 
-Accuracy: 0.9106
+| Gráfico | Objetivo |
+|----------|----------|
+| 📊 **Importância das Features (barras horizontais)** | Mostrar as variáveis mais influentes no modelo |
+| 🧩 **Taxa de Compra por Cluster** | Identificar grupos de maior conversão |
+| 🌀 **Projeção PCA 3D** | Visualizar separação entre clusters e padrões de comportamento |
+| 🔁 **Curva Precision–Recall e ROC-AUC** | Avaliar equilíbrio e poder discriminativo do modelo |
 
-Precision: 0.1218
+---
 
-Recall: 0.8571
+## 🏁 Conclusões
 
-F1-score: 0.2133
+- Os **clusters permitem segmentar utilizadores** com base em comportamento, distinguindo compradores fiéis de exploradores ocasionais.  
+- O **SMOTE** melhora significativamente o desempenho para a classe minoritária, mantendo **recall elevado**.  
+- As variáveis **`cart_view_ratio`** e **`cluster`** são determinantes para prever a probabilidade de compra.  
+- O **pipeline incremental** possibilita o processamento de milhões de registos sem sobrecarga de memória.  
+- O sistema é **escalável, interpretável e aplicável** a contextos de **marketing preditivo, recomendação de produtos e retenção de clientes**.
 
-Clusters principais:
+---
 
-Cluster 0: Usuários Passivos
+## 🚀 Tecnologias e Bibliotecas
 
-Cluster 1: Exploradores Leves
-
-Cluster 2: Curiosos Intensivos
-
-Cluster 3: Compradores Fieis
-
-Cluster 4: Exploradores Intermediários
-
-****************** Cluster 3 tem alta taxa de compra; 
-****************** Cluster 2 é muito ativo mas pouco converte; 
-****************** Clusters 0 e 4 são maioria e compram pouco.
+- Python 3.10  
+- `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `joblib`  
+- `SMOTE` via `imblearn`  
+- Processamento incremental (`partial
